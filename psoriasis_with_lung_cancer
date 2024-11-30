@@ -61,6 +61,7 @@ print(invalid_se_rows)
 
 
 merged_data.dropna(subset=["se_exposure", "se_outcome"])
+
 if merged_data.empty:
     print("Error: No valid data available after cleaning!")
 else:
@@ -73,12 +74,11 @@ else:
         },
         inplace=True
     )
-
     # Apply P-value filtering
     filtered_data = merged_data[
         (merged_data["P-VALUE_exposure"] < 5e-8) &
         (merged_data["P-VALUE_outcome"] < 5e-8)
-    ]
+    ].copy()
     if filtered_data.empty:
         print("Error: No valid data available after filtering!")
     else:
