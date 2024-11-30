@@ -1,0 +1,104 @@
+import pandas as pd
+import numpy as np
+import re
+from scipy.stats import t
+
+# Load exposure and outcome datasets
+exposure_data = pd.read_csv("psoriasis.tsv", sep="\t")
+outcome_data = pd.read_csv("lung_cancer.tsv", sep="\t")
+
+# Debug initial dataset sizes
+print(f"Exposure dataset size: {exposure_data.shape}")
+print(f"Outcome dataset size: {outcome_data.shape}")
+
+# Debug `95% CI (TEXT)` column
+print("\nUnique values in `95% CI (TEXT)` column (exposure):")
+print(exposure_data["95% CI (TEXT)"].dropna().unique())
+
+print("\nUnique values in `95% CI (TEXT)` column (outcome):")
+print(outcome_data["95% CI (TEXT)"].dropna().unique())
+
+# Function to extract standard error from confidence interval (CI)
+def extract_se_from_ci(ci_text):
+    """Extract standard error from confidence interval text."""
+    if isinstance(ci_text, str):
+        match = re.match(r'\[(\d+\.\d+)-(\d+\.\d+)]', ci_text)
+        if match:
+            lower, upper = map(float, match.groups())
+            return (upper - lower) / (2 * 1.96)  # Standard error formula
+        else:
+            print(f"Unrecognized CI format: {ci_text}")  # Debugging invalid formats
+    return np.nan  # Return NaN if parsing fails
+
+# Apply the function to calculate SE
+exposure_data["se_exposure"] = exposure_data["95% CI (TEXT)"].apply(extract_se_from_ci)
+outcome_data["se_outcome"] = outcome_data["95% CI (TEXT)"].apply(extract_se_from_ci)
+
+# Debug parsed SE values
+print("\nAfter parsing, unique values in `se_exposure` column:")
+print(exposure_data["se_exposure"].unique())
+
+print("\nAfter parsing, unique values in `se_outcome` column:")
+print(outcome_data["se_outcome"].unique())
+
+# Merge datasets on SNP column
+merged_data = pd.merge(
+    exposure_data,
+    outcome_data,
+    left_on="SNPS",
+    right_on="SNPS",
+    suffixes=("_exposure", "_outcome")
+)
+
+# Debug merged data
+print("\nMerged Data - Initial Rows:")
+print(merged_data.head())
+
+# Filter and clean merged data
+print("\nRows with missing or zero SE values:")
+invalid_se_rows = merged_data[(merged_data["se_exposure"].isna()) | (merged_data["se_outcome"].isna())]
+print(invalid_se_rows)
+
+merged_data = merged_data.dropna(subset=["se_exposure", "se_outcome"])
+if merged_data.empty:
+    print("Error: No valid data available after cleaning!")
+else:
+    # Rename columns for MR analysis
+    merged_data.rename(
+        columns={
+            "SNPS": "SNP",
+            "OR or BETA_exposure": "beta_exposure",
+            "OR or BETA_outcome": "beta_outcome",
+        },
+        inplace=True
+    )
+
+    # Apply P-value filtering
+    filtered_data = merged_data[
+        (merged_data["P-VALUE_exposure"] < 5e-8) &
+        (merged_data["P-VALUE_outcome"] < 5e-8)
+    ]
+    if filtered_data.empty:
+        print("Error: No valid data available after filtering!")
+    else:
+        print("\nFiltered Data - After Cleaning:")
+        print(filtered_data.head())
+
+        # Perform MR Analysis (IVW)
+        filtered_data["weight"] = 1 / filtered_data["se_outcome"] ** 2
+        X = filtered_data["beta_exposure"]
+        Y = filtered_data["beta_outcome"]
+        weights = filtered_data["weight"]
+
+        b_ivw = np.sum(weights * X * Y) / np.sum(weights * X ** 2)
+        se_ivw = np.sqrt(1 / np.sum(weights * X ** 2))
+
+        # Calculate t-statistic and p-value
+        t_stat = b_ivw / se_ivw
+        p_value = 2 * (1 - t.cdf(np.abs(t_stat), df=len(X) - 1))
+
+        # Output results
+        print("\nTwo-Sample MR Results:")
+        print(f"IVW Estimate (Beta): {b_ivw}")
+        print(f"Standard Error: {se_ivw}")
+        print(f"P-value: {p_value}")
