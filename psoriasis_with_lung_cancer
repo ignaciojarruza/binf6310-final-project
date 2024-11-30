@@ -59,7 +59,8 @@ print("\nRows with missing or zero SE values:")
 invalid_se_rows = merged_data[(merged_data["se_exposure"].isna()) | (merged_data["se_outcome"].isna())]
 print(invalid_se_rows)
 
-merged_data = merged_data.dropna(subset=["se_exposure", "se_outcome"])
+
+merged_data.dropna(subset=["se_exposure", "se_outcome"])
 if merged_data.empty:
     print("Error: No valid data available after cleaning!")
 else:
