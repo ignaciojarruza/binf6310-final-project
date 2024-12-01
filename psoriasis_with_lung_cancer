@@ -9,76 +9,85 @@ pd.set_option('display.max_rows', None)
 pd.set_option('display.max_columns', None)
 
 # Load exposure and outcome datasets
-exposure_data = pd.read_csv("psoriasis.tsv", sep="\t")
-outcome_data = pd.read_csv("breast_cancer.tsv", sep="\t")
+exposure_data = pd.read_csv("psoriasis_openGWAS.tsv", sep="\t")
+outcome_data = pd.read_csv("lung_cancer_NIH.csv", sep=",")
 
 # Convert SNPs to string type for reliable comparison
 exposure_data['SNPS'] = exposure_data['SNPS'].astype(str)
-outcome_data['SNPS'] = outcome_data['SNPS'].astype(str)
+outcome_data['snp'] = outcome_data['snp'].astype(str)
 
 # Find common SNPs
-common_snps = set(exposure_data['SNPS']).intersection(set(outcome_data['SNPS']))
+common_snps = set(exposure_data['SNPS']).intersection(set(outcome_data['snp']))
+print(f"Number of common SNPs: {len(common_snps)}")
 
+# Filter data for common SNPs
 filtered_exposure = exposure_data[exposure_data['SNPS'].isin(common_snps)]
-filtered_outcome = outcome_data[outcome_data['SNPS'].isin(common_snps)]
+filtered_outcome = outcome_data[outcome_data['snp'].isin(common_snps)]
 
+# Merge datasets on SNPs
 merged_data = pd.merge(
     filtered_exposure[['SNPS', 'OR or BETA', 'P-VALUE']],
-    filtered_outcome[['SNPS', 'OR or BETA', 'P-VALUE']],
-    on='SNPS',
+    filtered_outcome[['snp', 'beta', 'p_value']],
+    left_on='SNPS',
+    right_on='snp',
     suffixes=('_exposure', '_outcome')
 )
 
+# Rename columns for clarity
 merged_data.rename(columns={
-    'OR or BETA_exposure': 'Beta_exposure',
-    'OR or BETA_outcome': 'Beta_outcome',
-    'P-VALUE_exposure': 'P_value_exposure',
-    'P-VALUE_outcome': 'P_value_outcome'
+    'OR or BETA': 'Beta_exposure',
+    'beta': 'Beta_outcome',
+    'P-VALUE': 'P_value_exposure',
+    'p_value': 'P_value_outcome'
 }, inplace=True)
 
+# Drop rows with missing values in the required columns
 merged_data.dropna(subset=['Beta_exposure', 'Beta_outcome'], inplace=True)
+
+# Calculate Wald ratios
 merged_data['Wald_ratio'] = merged_data['Beta_outcome'] / merged_data['Beta_exposure']
 
+# Calculate standard error of Wald ratios
 merged_data['SE_Wald_ratio'] = np.sqrt(
     (merged_data['P_value_exposure'] ** -1) + (merged_data['P_value_outcome'] ** -1)
 )
 
+# Inverse Variance Weighted (IVW) Method
 weights = 1 / (merged_data['SE_Wald_ratio'] ** 2)
 ivw_estimate = np.sum(weights * merged_data['Wald_ratio']) / np.sum(weights)
 
-print(f"Inverse Variance weighted: {ivw_estimate}")
+print(f"Inverse Variance Weighted Estimate: {ivw_estimate}")
 
 ivw_se = np.sqrt(1 / np.sum(weights))
 odds_ratio = np.exp(ivw_estimate)
 z_score = ivw_estimate / ivw_se
 p_value = 2 * (1 - norm.cdf(abs(z_score)))
 
-print(f"Odds Ratio (Inverse variance weighted): {odds_ratio}")
-print(f"P-Value (Inverse variance weighted): {p_value}")
+print(f"Odds Ratio (IVW): {odds_ratio}")
+print(f"P-Value (IVW): {p_value}")
 print("-------------------------------------------------")
 
-# Prepare data for MR-Egger regression
+# MR-Egger Regression
 X = merged_data['Beta_exposure'].values.reshape(-1, 1)
 y = merged_data['Beta_outcome'].values
 weights = 1 / (merged_data['SE_Wald_ratio'] ** 2)
 
-# Perform weighted linear regression
 reg = LinearRegression()
 reg.fit(X, y, sample_weight=weights)
 
-egger_causal = reg.coef_[0]  # Slope (causal effect)
-egger_intercept = reg.intercept_  # Intercept (pleiotropy estimate)
+egger_causal = reg.coef_[0]
+egger_intercept = reg.intercept_
 
-# Calculate odds ratio and p-value
 egger_odds_ratio = np.exp(egger_causal)
-egger_se = np.sqrt(1 / np.sum(weights))  # Approximate standard error
+egger_se = np.sqrt(1 / np.sum(weights))
 egger_z_score = egger_causal / egger_se
 egger_p_value = 2 * (1 - norm.cdf(abs(egger_z_score)))
 
 print(f"MR-Egger Odds Ratio: {egger_odds_ratio}")
 print(f"MR-Egger P-Value: {egger_p_value}")
-print('------------------------------------------------')
+print("------------------------------------------------")
 
+# Weighted Median
 def weighted_median(values, weights):
     sorted_indices = np.argsort(values)
     values = np.array(values)[sorted_indices]
@@ -88,44 +97,30 @@ def weighted_median(values, weights):
     median_idx = np.where(cumulative_weight >= 0.5 * total_weight)[0][0]
     return values[median_idx]
 
-# Calculate weighted median
 wald_ratios = merged_data['Wald_ratio'].values
 weights = 1 / (merged_data['SE_Wald_ratio'] ** 2)
 median_causal = weighted_median(wald_ratios, weights)
 
-# Calculate odds ratio and p-value
 median_odds_ratio = np.exp(median_causal)
-median_se = np.std(wald_ratios)  # Approximate standard error
-if median_se != 0:
-    median_z_score = median_causal / median_se
-else:
-    median_z_score = 0
+median_se = np.std(wald_ratios)
+median_z_score = median_causal / median_se if median_se != 0 else 0
 median_p_value = 2 * (1 - norm.cdf(abs(median_z_score)))
 
 print(f"Weighted Median Odds Ratio: {median_odds_ratio}")
 print(f"Weighted Median P-Value: {median_p_value}")
-print('---------------------------------------------------')
+print("---------------------------------------------------")
 
-
-# Use kernel density estimation (KDE) to find the mode
-wald_ratios = merged_data['Wald_ratio'].values
-weights = 1 / (merged_data['SE_Wald_ratio'] ** 2)
-
+# Weighted Mode
 if len(wald_ratios) > 1:
-    # Kernel density estimation with weights
     kde = gaussian_kde(wald_ratios, weights=weights)
     x_grid = np.linspace(min(wald_ratios), max(wald_ratios), 1000)
     kde_values = kde(x_grid)
     mode_causal = x_grid[np.argmax(kde_values)]
 else:
-    # Fallback to median
     print("Error: Weighted Mode calculation requires multiple Wald ratios. Using median as fallback.")
     mode_causal = np.median(wald_ratios) if len(wald_ratios) > 0 else np.nan
 
-# Convert weights to numpy array for indexing
 weights_array = np.array(weights)
-
-# Calculate odds ratio and p-value
 mode_odds_ratio = np.exp(mode_causal) if not np.isnan(mode_causal) else np.nan
 mode_se = np.std(wald_ratios) if len(wald_ratios) > 1 else (1 / weights_array[0] if len(wald_ratios) == 1 else np.nan)
 mode_z_score = mode_causal / mode_se if mode_se != 0 else 0
