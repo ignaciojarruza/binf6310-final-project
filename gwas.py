@@ -75,6 +75,7 @@ def inverseVarianceWeightedEstimante(merged_data):
     print(f"Odds Ratio (IVW): {odds_ratio}")
     print(f"P-Value (IVW): {p_value}")
     print("-------------------------------------------------")
+    return odds_ratio, p_value
 
 def mrEggerRegression(merged_data):
     # MR-Egger Regression
@@ -96,6 +97,7 @@ def mrEggerRegression(merged_data):
     print(f"MR-Egger Odds Ratio: {egger_odds_ratio}")
     print(f"MR-Egger P-Value: {egger_p_value}")
     print("------------------------------------------------")
+    return egger_odds_ratio, egger_p_value
 
 # Weighted Median
 def weighted_median(values, weights):
@@ -116,6 +118,7 @@ def weightedMedianOddsRatioPValue(wald_ratios, median_causal):
     print(f"Weighted Median Odds Ratio: {median_odds_ratio}")
     print(f"Weighted Median P-Value: {median_p_value}")
     print("---------------------------------------------------")
+    return median_odds_ratio, median_p_value
 
 def weightedMode(wald_ratios, weights):
     # Weighted Mode
@@ -136,6 +139,7 @@ def weightedMode(wald_ratios, weights):
 
     print(f"Weighted Mode Odds Ratio: {mode_odds_ratio}")
     print(f"Weighted Mode P-Value: {mode_p_value}")
+    return mode_odds_ratio, mode_p_value
 
 
 
