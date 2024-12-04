@@ -4,11 +4,19 @@ import numpy as np
 from scipy.stats import norm
 from sklearn.linear_model import LinearRegression
 from scipy.stats import gaussian_kde
+import os
 
-def handleExposureOutcomeFiles(exposure_file: str, outcome_file: str):
+def handleExposureOutcomeFiles(exposure_file_dir: str, outcome_file: str):
     try:
         # Load exposure and outcome datasets
-        exposure_data = pd.read_csv(exposure_file, sep="\t")
+        exposure_data = []
+        files = [f for f in os.listdir(exposure_file_dir) if f.endswith('.tsv')]
+        for file in files:
+            file_path = os.path.join(exposure_file_dir, file)
+            df = pd.read_csv(file_path, sep='\t')
+            exposure_data.append(df)
+        exposure_data = pd.concat(exposure_data, ignore_index=True)
+
         outcome_data = pd.read_csv(outcome_file, sep="\t")
         return exposure_data, outcome_data
     except FileNotFoundError:
@@ -24,6 +32,9 @@ def findCommonSNP(exposure_data, outcome_data):
         # Find common SNPs
         common_snps = set(exposure_data['SNPS']).intersection(set(outcome_data['SNPS']))
         print(f"Number of common SNPs: {len(common_snps)}")
+        if len(common_snps) == 0:
+            print("No common SNPs found in datasets.")
+            sys.exit()
 
         # Filter data for common SNPs
         filtered_exposure = exposure_data[exposure_data['SNPS'].isin(common_snps)]
@@ -66,15 +77,11 @@ def inverseVarianceWeightedEstimante(merged_data):
     weights = 1 / (merged_data['SE_Wald_ratio'] ** 2)
     ivw_estimate = np.sum(weights * merged_data['Wald_ratio']) / np.sum(weights)
 
-    print(f"Inverse Variance Weighted Estimate: {ivw_estimate}")
+    #print(f"Inverse Variance Weighted Estimate: {ivw_estimate}")
     ivw_se = np.sqrt(1 / np.sum(weights))
     odds_ratio = np.exp(ivw_estimate)
     z_score = ivw_estimate / ivw_se
     p_value = 2 * (1 - norm.cdf(abs(z_score)))
-
-    print(f"Odds Ratio (IVW): {odds_ratio}")
-    print(f"P-Value (IVW): {p_value}")
-    print("-------------------------------------------------")
     return odds_ratio, p_value
 
 def mrEggerRegression(merged_data):
@@ -93,10 +100,6 @@ def mrEggerRegression(merged_data):
     egger_se = np.sqrt(1 / np.sum(weights))
     egger_z_score = egger_causal / egger_se
     egger_p_value = 2 * (1 - norm.cdf(abs(egger_z_score)))
-
-    print(f"MR-Egger Odds Ratio: {egger_odds_ratio}")
-    print(f"MR-Egger P-Value: {egger_p_value}")
-    print("------------------------------------------------")
     return egger_odds_ratio, egger_p_value
 
 # Weighted Median
@@ -115,9 +118,6 @@ def weightedMedianOddsRatioPValue(wald_ratios, median_causal):
     median_z_score = median_causal / median_se if median_se != 0 else 0
     median_p_value = 2 * (1 - norm.cdf(abs(median_z_score)))
 
-    print(f"Weighted Median Odds Ratio: {median_odds_ratio}")
-    print(f"Weighted Median P-Value: {median_p_value}")
-    print("---------------------------------------------------")
     return median_odds_ratio, median_p_value
 
 def weightedMode(wald_ratios, weights):
@@ -136,9 +136,6 @@ def weightedMode(wald_ratios, weights):
     mode_se = np.std(wald_ratios) if len(wald_ratios) > 1 else (1 / weights_array[0] if len(wald_ratios) == 1 else np.nan)
     mode_z_score = mode_causal / mode_se if mode_se != 0 else 0
     mode_p_value = 2 * (1 - norm.cdf(abs(mode_z_score))) if not np.isnan(mode_causal) else np.nan
-
-    print(f"Weighted Mode Odds Ratio: {mode_odds_ratio}")
-    print(f"Weighted Mode P-Value: {mode_p_value}")
     return mode_odds_ratio, mode_p_value
 
 
