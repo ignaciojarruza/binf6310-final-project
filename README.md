@@ -52,3 +52,8 @@ References:
 - Burdett, T. (2024d). GWAS Catalog. Ebi.ac.uk. https://www.ebi.ac.uk/gwas/efotraits/MONDO_0007254
 - Burdett, T. (2024e). GWAS Catalog. Ebi.ac.uk. https://www.ebi.ac.uk/gwas/efotraits/MONDO_0002367
 - Burdett, T. (2024f). GWAS Catalog. Ebi.ac.uk. https://www.ebi.ac.uk/gwas/efotraits/MONDO_0018906
+- Burdett, T. (2024a). GWAS Catalog. Ebi.ac.uk. https://www.ebi.ac.uk/gwas/efotraits/EFO_0000676
+- Burdett, T. (2024a). GWAS Catalog. Ebi.ac.uk. https://www.ebi.ac.uk/gwas/efotraits/EFO_1001494
+- Burdett, T. (2024a). GWAS Catalog. Ebi.ac.uk. https://www.ebi.ac.uk/gwas/efotraits/EFO_0007773
+- NIH NCI DCEG. (2024). GWAS Explorer. Cancer.gov. https://exploregwas.cancer.gov/plco-atlas/#/downloads
+  - All Lung Cancer - Machiela 2023 dataset
