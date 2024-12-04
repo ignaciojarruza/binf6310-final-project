@@ -23,4 +23,4 @@ methods = ["MR-Egger", "Weighted Median", "Inverse variance weighted", "Weighted
 OR = [egger_odds_ratio, median_odds_ratio, odds_ratio, mode_odds_ratio]
 p_values = [egger_p_value, median_p_value, p_value, mode_p_value]
 table = list(zip(methods, OR, p_values))
-print(tabulate(table, headers=["Methods", "OR (95% CI)", "p value"], tablefmt="pretty"))
+print(tabulate(table, headers=["Methods", "OR", "p value"], tablefmt="pretty"))
