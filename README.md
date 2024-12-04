@@ -45,9 +45,10 @@ The data for this pipeline recreation is all included in the datasets and psoria
 ## Database References
 
 References:
-Burdett, T. (2024a). GWAS Catalog. Ebi.ac.uk. https://www.ebi.ac.uk/gwas/efotraits/MONDO_0004647
-Burdett, T. (2024b). GWAS Catalog. Ebi.ac.uk. https://www.ebi.ac.uk/gwas/efotraits/MONDO_0008903
-Burdett, T. (2024c). GWAS Catalog. Ebi.ac.uk. https://www.ebi.ac.uk/gwas/efotraits/EFO_0009260
-Burdett, T. (2024d). GWAS Catalog. Ebi.ac.uk. https://www.ebi.ac.uk/gwas/efotraits/MONDO_0007254
-Burdett, T. (2024e). GWAS Catalog. Ebi.ac.uk. https://www.ebi.ac.uk/gwas/efotraits/MONDO_0002367
-Burdett, T. (2024f). GWAS Catalog. Ebi.ac.uk. https://www.ebi.ac.uk/gwas/efotraits/MONDO_0018906
+
+- Burdett, T. (2024a). GWAS Catalog. Ebi.ac.uk. https://www.ebi.ac.uk/gwas/efotraits/MONDO_0004647
+- Burdett, T. (2024b). GWAS Catalog. Ebi.ac.uk. https://www.ebi.ac.uk/gwas/efotraits/MONDO_0008903
+- Burdett, T. (2024c). GWAS Catalog. Ebi.ac.uk. https://www.ebi.ac.uk/gwas/efotraits/EFO_0009260
+- Burdett, T. (2024d). GWAS Catalog. Ebi.ac.uk. https://www.ebi.ac.uk/gwas/efotraits/MONDO_0007254
+- Burdett, T. (2024e). GWAS Catalog. Ebi.ac.uk. https://www.ebi.ac.uk/gwas/efotraits/MONDO_0002367
+- Burdett, T. (2024f). GWAS Catalog. Ebi.ac.uk. https://www.ebi.ac.uk/gwas/efotraits/MONDO_0018906
