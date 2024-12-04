@@ -64,7 +64,7 @@ def findCommonSNP(exposure_data, outcome_data):
         print(f"SNP data not available in input data.")
         sys.exit(1)
 
-def inverseVarianceWeightedEstimante(merged_data):
+def calculateWaldRatios(merged_data):
     # Calculate Wald ratios
     merged_data['Wald_ratio'] = merged_data['Beta_outcome'] / merged_data['Beta_exposure']
 
@@ -72,12 +72,13 @@ def inverseVarianceWeightedEstimante(merged_data):
     merged_data['SE_Wald_ratio'] = np.sqrt(
         (merged_data['P_value_exposure'] ** -1) + (merged_data['P_value_outcome'] ** -1)
     )
+    return merged_data
 
+def inverseVarianceWeightedEstimate(merged_data):
     # Inverse Variance Weighted (IVW) Method
     weights = 1 / (merged_data['SE_Wald_ratio'] ** 2)
     ivw_estimate = np.sum(weights * merged_data['Wald_ratio']) / np.sum(weights)
 
-    #print(f"Inverse Variance Weighted Estimate: {ivw_estimate}")
     ivw_se = np.sqrt(1 / np.sum(weights))
     odds_ratio = np.exp(ivw_estimate)
     z_score = ivw_estimate / ivw_se
@@ -117,7 +118,6 @@ def weightedMedianOddsRatioPValue(wald_ratios, median_causal):
     median_se = np.std(wald_ratios)
     median_z_score = median_causal / median_se if median_se != 0 else 0
     median_p_value = 2 * (1 - norm.cdf(abs(median_z_score)))
-
     return median_odds_ratio, median_p_value
 
 def weightedMode(wald_ratios, weights):
